@@ -102,3 +102,67 @@ Relevant styles below
     font-size: 40px;
 }
 
+.list-group-item{
+    overflow: scroll;
+}
+
+.label{
+    display: inline-block !important;
+    padding: 0.6em .5em 0.6em !important;
+    margin-bottom: 5px;
+    font-size: 78% !important; 
+}
+
+.navbar-btn{
+    margin-left: 15px;
+}
+#api_key_form{
+    margin: 0;
+}
+
+#refresh_btn_page{
+    margin-top:5px;
+    margin-left:0;
+}
+
+#refresh_btn_update{
+    margin-top:5px;
+    margin-left:0;
+}
+
+#crw_refresh_btn_update{
+    margin-top:5px;
+    margin-left:0;
+}
+
+#crw_refresh_btn_page{
+    margin-top:5px;
+    margin-left:0;
+}
+
+#crawler-form{
+    margin-top: 5px;
+    margin-left: 0;
+    padding: 0;
+}
+
+#refresh_btn{
+    margin-bottom: 15px;
+}
+
+#search_btn{
+    margin-top: 5px;
+    margin-left:15px;
+}
+
+.card-date{
+    margin-left: 15px;
+}
+
+.card-hr{
+    margin-top: 0;
+}
+
+.card-flag{
+    margin-left: 10px;
+}

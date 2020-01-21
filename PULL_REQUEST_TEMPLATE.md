@@ -1,7 +1,11 @@
-Describe your changes or your new module and let us know which OS and Python version you tested on.
-_________________
-**OS**: `x`
+#### Checklist
+- [ ] I have followed the [Contributor Guidelines](https://github.com/zdresearch/OWASP-Nettacker/wiki/Developers#contribution-guidelines).
+- [ ] I have added the relevant documentation.
+- [ ] My branch is up-to-date with the Upstream master branch.
 
-**OS Version**: `x`
+#### Changes proposed in this pull request
 
-**Python Version**: `x`
+#### Your development environment
+- OS: `x`
+- OS Version: `x`
+- Python Version: `x`

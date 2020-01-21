@@ -3,7 +3,6 @@
 # Author: Pradeep Jairamani , github.com/pradeepjairamani
 
 
-
 import socket
 import socks
 import time
@@ -21,7 +20,6 @@ from core.alert import *
 from core.targets import target_type
 from core.targets import target_to_host
 from core.load_modules import load_file_path
-from lib.icmp.engine import do_one as do_one_ping
 from lib.socks_resolver.engine import getaddrinfo
 from core._time import now
 from core.log import __log_into_file
@@ -33,11 +31,11 @@ def extra_requirements_dict():
     }
 
 
-
 def conn(targ, port, timeout_sec, socks_proxy):
     try:
         if socks_proxy is not None:
-            socks_version = socks.SOCKS5 if socks_proxy.startswith('socks5://') else socks.SOCKS4
+            socks_version = socks.SOCKS5 if socks_proxy.startswith(
+                'socks5://') else socks.SOCKS4
             socks_proxy = socks_proxy.rsplit('://')[1]
             if '@' in socks_proxy:
                 socks_username = socks_proxy.rsplit(':')[0]
@@ -62,7 +60,7 @@ def conn(targ, port, timeout_sec, socks_proxy):
 
 
 def Algorithm(target, port, timeout_sec, log_in_file, language, time_sleep,
-          thread_tmp_filename, socks_proxy, scan_id, scan_cmd):
+              thread_tmp_filename, socks_proxy, scan_id, scan_cmd):
     try:
         s = conn(target, port, timeout_sec, socks_proxy)
         if not s:
@@ -80,13 +78,14 @@ def Algorithm(target, port, timeout_sec, log_in_file, language, time_sleep,
 
 
 def __weak_encryption(target, port, timeout_sec, log_in_file, language, time_sleep,
-                 thread_tmp_filename, socks_proxy, scan_id, scan_cmd):
+                      thread_tmp_filename, socks_proxy, scan_id, scan_cmd):
     if Algorithm(target, port, timeout_sec, log_in_file, language, time_sleep,
-             thread_tmp_filename, socks_proxy, scan_id, scan_cmd):
-        info(messages(language, 140).format(target, port, 'Weak Encryption Algorithm : sha1WithRSAEncryption'))
+                 thread_tmp_filename, socks_proxy, scan_id, scan_cmd):
+        info(messages(language, "target_vulnerable").format(
+            target, port, 'Weak Encryption Algorithm : sha1WithRSAEncryption'))
         __log_into_file(thread_tmp_filename, 'w', '0', language)
         data = json.dumps({'HOST': target, 'USERNAME': '', 'PASSWORD': '', 'PORT': port, 'TYPE': 'weak_encryption_algorithm_vuln',
-                           'DESCRIPTION': messages(language, 139).format('Weak Encryption Algorithm : sha1WithRSAEncryption'), 'TIME': now(),
+                           'DESCRIPTION': messages(language, "vulnerable").format('Weak Encryption Algorithm : sha1WithRSAEncryption'), 'TIME': now(),
                            'CATEGORY': "vuln",
                            'SCAN_ID': scan_id, 'SCAN_CMD': scan_cmd})
         __log_into_file(log_in_file, 'a', data, language)
@@ -103,7 +102,8 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
         if methods_args is not None:
             for extra_requirement in extra_requirements_dict():
                 if extra_requirement in methods_args:
-                    new_extra_requirements[extra_requirement] = methods_args[extra_requirement]
+                    new_extra_requirements[
+                        extra_requirement] = methods_args[extra_requirement]
         extra_requirements = new_extra_requirements
         if ports is None:
             ports = extra_requirements["weak_encryption_vuln_ports"]
@@ -127,7 +127,7 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
             trying += 1
             if verbose_level > 3:
                 info(
-                    messages(language, 72).format(trying, total_req, num, total, target, port, 'weak_encryption_algorithm_vuln'))
+                    messages(language, "trying_message").format(trying, total_req, num, total, target, port, 'weak_encryption_algorithm_vuln'))
             while 1:
                 try:
                     if threading.activeCount() >= thread_number:
@@ -141,7 +141,8 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
                 break
         # wait for threads
         kill_switch = 0
-        kill_time = int(timeout_sec / 0.1) if int(timeout_sec / 0.1) is not 0 else 1
+        kill_time = int(
+            timeout_sec / 0.1) if int(timeout_sec / 0.1) is not 0 else 1
         while 1:
             time.sleep(0.1)
             kill_switch += 1
@@ -152,12 +153,13 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
                 break
         thread_write = int(open(thread_tmp_filename).read().rsplit()[0])
         if thread_write is 1 and verbose_level is not 0:
-            info(messages(language, 141).format('weak'))
+            info(messages(language, "no_vulnerability_found").format('Weak Signature Algorithm'))
             data = json.dumps({'HOST': target, 'USERNAME': '', 'PASSWORD': '', 'PORT': '', 'TYPE': 'weak_encryption_algorithm_vuln',
-                               'DESCRIPTION': messages(language, 141).format('Weak Encryption Algorithm : sha1WithRSAEncryption'), 'TIME': now(),
+                               'DESCRIPTION': messages(language, "no_vulnerability_found").format('Weak Encryption Algorithm'), 'TIME': now(),
                                'CATEGORY': "scan", 'SCAN_ID': scan_id, 'SCAN_CMD': scan_cmd})
             __log_into_file(log_in_file, 'a', data, language)
         os.remove(thread_tmp_filename)
 
     else:
-        warn(messages(language, 69).format('weak_encryption_algorithm_vuln', target))
+        warn(messages(language, "input_target_error").format(
+            'weak_encryption_algorithm_vuln', target))

@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="/css/animate.min.css">
     <link rel="stylesheet" href="/css/font-awesome.min.css">
     <link rel="stylesheet" href="/css/bootstrap-select.min.css">
+    <link rel="stylesheet" href="/css/bootstrap-tagsinput.css">
+    <link rel="stylesheet" href="/css/introjs.min.css">
+    <link rel="stylesheet" href="/css/introjs-modern.css">
     <script src="/js/jquery.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
     <script src="/js/angular.min.js"></script>
@@ -22,6 +25,9 @@
     <script src="/js/buttons.js"></script>
     <script src="/js/main.js"></script>
     <script src="/js/bootstrap-select.min.js"></script>
+    <script src="/js/bootstrap-tagsinput.min.js"></script>
+    <script src="/js/bootstrap-tagsinput-angular.min.js"></script>
+    <script src="/js/intro.min.js"></script>
 </head>
 <div class="container">
     <!-- Topper w/ logo -->
@@ -34,9 +40,9 @@
         </div>
     </div> <!-- End Topper -->
     <!-- Navigation -->
-    <div class="container row">
+    <div class="container-fluid row">
         <nav class="navbar navbar-inverse" role="navigation">
-            <div class="container">
+            <div class="container-fluid">
                 <!-- Brand and toggle get grouped for better mobile display -->
                 <div class="navbar-header">
                     <button type="button" class="navbar-toggle" data-toggle="collapse"
@@ -60,32 +66,36 @@
                                        type="text"
                                        class="form-control" placeholder="API Key" value="">
                             </div>
-                            <a id="send_session" type="submit" action="javascript:check_api_session()"
-                               class="btn btn-danger"
-                               am-latosans="bold">Set Session
-                            </a>&nbsp;&nbsp;&nbsp;
+                            <button type="submit" id="send_session" action="javascript:check_api_session()"
+                                    class="btn btn-danger navbar-btn" am-latosans="bold">Set Session</button>
                         </form>
                     </ul>
-                    <ul id="logout_btn" class="nav navbar-nav navbar-right hidden">
-                        <form class="navbar-form navbar-left" action="javascript:do_logout()">
-                            <a type="submit" action="javascript:do_logout()"
-                               class="btn btn-info"
-                               am-latosans="bold">logout
-                            </a>
-                        </form>
-                    </ul>
-
-                    <button id="new_scan_btn" class="btn btn-warning navbar-btn navbar-right ">New Scan</button>
-
-                    <ul id="results_btn" class="nav navbar-nav navbar-right">
-                        <form class="navbar-form navbar-left" action="javascript:do_results()">
-                            <a type="submit" action="javascript:results()"
-                               class="btn btn-success"
+                    <ul id = "some_name" class="nav navbar-nav navbar-right">
+                        <li id="tutorial_btn">
+                            <button id="tutorial_btn" class="btn btn-danger navbar-btn">
+                                Tutorial
+                            </button>
+                        </li>
+                        <li id="crawler_btn_ul">
+                            <button id="crawler_btn" class="btn btn-primary navbar-btn">
+                                Crawler
+                            </button>
+                        </li>
+                        <li id="results_btn">
+                            <button action="javascript:results()" class="btn btn-success navbar-btn"
                                am-latosans="bold">Results
-                            </a>
-                        </form>
+                            </button>
+                        </li>
+                        <li id="new_scan_ul">
+                        <button id="new_scan_btn" class="btn btn-warning navbar-btn">New Scan</button>
+                        </li>
+                        <li id="logout_btn" class="hidden">
+                                <button type="submit" action="javascript:do_logout()"
+                                   class="btn btn-info navbar-btn"
+                                   am-latosans="bold">Logout
+                                </button>
+                        </li>
                     </ul>
-                    <button id="crawler_btn" class="btn btn-primary navbar-btn navbar-right ">Crawler</button>
                 </div><!-- /.navbar-collapse -->
             </div>
         </nav>
@@ -97,7 +107,7 @@
         <strong>Failed!</strong> Invalid API key!
     </div>
     <div id="logout_success" class="hidden alert alert-success nav navbar-nav navbar-right">
-        <strong>logged out!</strong> cleared browser your session!
+        <strong>Logged out!</strong> cleared browser your session!
     </div>
     <body>
     <br><br>
@@ -114,7 +124,7 @@
             SCADA. It would make a competitive edge compared to other scanner making it one of the bests.</p>
         <h2>Links</h2>
         <ul>
-            <li>GitHub <a href="https://github.com/viraintel/OWASP-Nettacker" class="glyphicon glyphicon-link"></a></li>
+            <li>GitHub <a href="https://github.com/zdresearch/OWASP-Nettacker" class="glyphicon glyphicon-link"></a></li>
             <li>OWASP <a href="https://www.owasp.org/index.php/OWASP_Nettacker" class="glyphicon glyphicon-link"></a>
             </li>
         </ul>
@@ -128,25 +138,27 @@
         <form>
             <div id="basic_options">
                 <h3>Targets</h3>
-                <div class="input-group col-xs-4">
+                <div class="input-group col-xs-4" id="targets-entry">
                     <span class="input-group-addon"><i class="fa fa-space-shuttle"></i></span>
-                    <input id="targets" type="text" class="form-control" placeholder="targets">
+                    <input id="targets" type="text" class="form-control" data-role="tagsinput" placeholder="Add new target" >
                 </div>
+                <div id="scan_options_combined">
                 <h3>Profiles</h3>
                 <div class="form-group">
                     <div id="profile" class="checkbox text-justify">
-                        <label><input id="all" type="checkbox" class="checkbox"><a
-                                class="label label-info">Select all profiles</a></label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <label><input id="all" type="checkbox" class="check check-all-scans"><a
+                                class="label label-info">Select all profiles</a></label>&nbsp;&nbsp;&nbsp;&nbsp;
                         {% autoescape off %}{{profile}}{% endautoescape %}
                     </div>
                 </div>
                 <h3>Scan Methods</h3>
                 <div class="form-group">
                     <div id="scan_method" class="checkbox text-justify">
-                        <label><input id="all" type="checkbox" class="checkbox"><a
+                        <label><input id="all" type="checkbox" class="checkbox check-all-scans" ><a
                                 class="label label-info">Select all</a></label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                         {% autoescape off %}{{scan_method}}{% endautoescape %}
                     </div>
+                </div>
                 </div>
                 <h3>Graph</h3>
                 <div class="form-group">
@@ -155,7 +167,7 @@
                     </div>
                 </div>
                 <h3>Reporting Language</h3>
-                <div class="form-group">
+                <div class="form-group" id="languages-entry">
                     <label for="sel2">Select Language:</label>
                     <select id="languages" class="selectpicker" data-width="fit">
                         {% autoescape off %}{{languages}}{% endautoescape %}
@@ -258,21 +270,28 @@
                 <div class="form-group col-md-6">
                     <h3>Users</h3>
                     <textarea class="input-mini form-control" rows="8" cols="50" id="users"
-                              placeholder="separate with commas or new line"></textarea>
+                              data-role="tagsinput" placeholder="separate with commas or new line">
+                    </textarea>
                 </div>
                 <div class="form-group col-md-6">
                     <h3>Passwords</h3>
                     <textarea class="form-control" rows="8" cols="50" id="passwds"
-                              placeholder="separate with commas or new line"></textarea>
+                               placeholder="separate with commas or new line"></textarea>
                 </div>
                 <br>
                 <h3>Extra Module Options</h3>
                 <div class="form-group">
-                    <textarea class="form-control" rows="8" cols="50" id="methods_args">{% autoescape off %}{{method_args_list}}{% endautoescape %}</textarea>
+                    <textarea class="form-control" rows="8" cols="50" id="methods_args">
+                        {% autoescape off %}
+                            {{method_args_list}}
+                        {% endautoescape %}
+                    </textarea>
                 </div>
             </div>
             <br>
-            <ul id="submit_new_scan" class="btn btn-primary" action="javascript:submit_new_scan()">Submit</ul>
+            <ul id="submit_new_scan" class="btn btn-primary" action="javascript:submit_new_scan()">
+                Submit
+            </ul>
         </form>
         <br><br>
         <div id="success_request" class="alert alert-success hidden text-justify">
@@ -296,14 +315,10 @@
     </div>
     <div id="get_results" class="hidden">
         <div id="refresh_btn" class="hidden">
-            <div class="row">
-                &nbsp;&nbsp;&nbsp;&nbsp;<a id="refresh_btn_update" class="btn btn-info"><span
-                    class="glyphicon glyphicon-refresh"></span> last updates</a>
-                <a id="refresh_btn_page" class="btn btn-success"><span class="glyphicon glyphicon-refresh"></span>
-                    reload current page</a>
-
-            </div>
-            <br><br>
+            <a id="refresh_btn_update" class="btn btn-info"><span
+                class="glyphicon glyphicon-refresh"></span> last updates</a>
+            <a id="refresh_btn_page" class="btn btn-success"><span class="glyphicon glyphicon-refresh"></span>
+                reload current page</a>
         </div>
         <div id="scan_results" class="list-group hidden">
         </div>
@@ -319,15 +334,14 @@
     <div id="crawler_area" class="hidden">
         <div id="crw_refresh_btn" class="hidden">
             <div class="row">
-                <div class="col-sm-4"> &nbsp;&nbsp;&nbsp;&nbsp;
+                <div class="col-sm-4">
                     <a id="crw_refresh_btn_update" class="btn btn-info"><span
                             class="glyphicon glyphicon-refresh"></span> last updates</a>
                     <a id="crw_refresh_btn_page" class="btn btn-success"><span
                             class="glyphicon glyphicon-refresh"></span>
                         reload current page</a>
                 </div>
-
-                <form action="javascript:p_search();" class="col-sm-3">
+                <form action="javascript:p_search();" class="col-sm-3" id="crawler-form">
                     <input id="search_data" class="form-control form-inline" id="search_frm" placeholder="filter by host">
                 </form>
                 <button id="search_btn" type="submit" class="col-sm-1 btn btn-primary">Search</button>

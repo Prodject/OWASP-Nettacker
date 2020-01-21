@@ -32,9 +32,24 @@ def _profiles():
     """
     return {
         "information_gathering": ["port_scan"],
+        "info": ["port_scan"],
         "vulnerability": ["*_vuln"],
+        "vuln": ["*_vuln"],
         "scan": ["*_scan"],
-        "brute": ["*_brute"]
+        "brute": ["*_brute"],
+        "wp": ["wp_plugin_scan", "wp_theme_scan", "wp_timthumbs_scan", "wp_user_enum_scan",
+               "wordpress_dos_cve_2018_6389_vuln", "wp_xmlrpc_bruteforce_vuln", "wp_xmlrpc_pingback_vuln"],
+        "wordpress": ["wp_plugin_scan", "wp_theme_scan", "wp_timthumbs_scan", "wp_user_enum_scan",
+                      "wordpress_dos_cve_2018_6389_vuln", "wp_xmlrpc_bruteforce_vuln", "wp_xmlrpc_pingback_vuln"],
+        "joomla": ["joomla_template_scan", "joomla_user_enum_scan", "joomla_version_scan"]
+    }
+
+
+def _synonym_profile():
+    return {
+        "info": "information_gathering",
+        "vuln": "vulnerability",
+        "wp": "wordpress"
     }
 
 
@@ -58,7 +73,32 @@ def _api_config():
             "enabled": False,
             "filename": "nettacker_api_access.log"
         },
-        "api_db_name": _paths()["home_path"] + "/database.sqlite3"
+    }
+
+
+def _database_config():
+    """
+    Database Config (could be modified by user)
+    For sqlite database:
+        fill the name of the DB as sqlite,
+        DATABASE as the name of the db user wants
+        other details can be left empty
+    For mysql users:
+        fill the name of the DB as mysql
+        DATABASE as the name of the database you want to create
+        USERNAME, PASSWORD, HOST and the PORT of the MySQL server need to be filled respectively
+
+    Returns:
+        a JSON with Database configuration
+    """
+    return {
+        "DB": "sqlite",
+        # "DB":"mysql",
+        "DATABASE": _paths()["home_path"] + "/nettacker.db",  # Name of the database
+        "USERNAME": "",
+        "PASSWORD": "",
+        "HOST": "",
+        "PORT": ""
     }
 
 
@@ -93,7 +133,7 @@ def _core_config():
         "check_ranges": False,
         "check_subdomains": False,
         "thread_number": 100,
-        "thread_number_host": 30,
+        "thread_number_host": 5,
         "socks_proxy": None,
         "retries": 3,
         "ping_flag": False,
@@ -111,7 +151,12 @@ def _core_config():
         "api_client_white_list_ips": _api_config()["api_client_white_list"]["ips"],
         "api_access_log": _api_config()["api_access_log"]["enabled"],
         "api_access_log_filename": _api_config()["api_access_log"]["filename"],
-        "api_db_name": _api_config()["api_db_name"],
+        "database_type": _database_config()["DB"],
+        "database_name": _database_config()["DATABASE"],
+        "database_username": _database_config()["USERNAME"],
+        "database_password": _database_config()["PASSWORD"],
+        "database_host": _database_config()["HOST"],
+        "database_port": _database_config()["PORT"],
         "home_path": _paths()["home_path"],
         "tmp_path": _paths()["tmp_path"],
         "results_path": _paths()["results_path"]

@@ -18,6 +18,7 @@ from lib.socks_resolver.engine import getaddrinfo
 from core._time import now
 from core.log import __log_into_file
 from core.compatible import is_windows
+from lib.payload.scanner.service.engine import discover_by_port
 
 logging.getLogger("scapy.runtime").setLevel(logging.CRITICAL)
 
@@ -25,9 +26,10 @@ logging.getLogger("scapy.runtime").setLevel(logging.CRITICAL)
 def extra_requirements_dict():
     return {  # 1000 common ports used by nmap scanner
         "port_scan_stealth": ["False"],
+        "udp_scan" : ["False"],
         "port_scan_ports": [1, 3, 4, 6, 7, 9, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 30, 32, 33, 37, 42,
-                            43, 49, 53, 70, 79, 80, 81, 82, 83, 84, 85, 88, 89, 90, 99, 100, 106, 109, 110,
-                            111, 113, 119, 125, 135, 139, 143, 144, 146, 161, 163, 179, 199, 211, 212, 222,
+                            43, 49, 53, 67, 68, 69, 70, 79, 80, 81, 82, 83, 84, 85, 88, 89, 90, 99, 100, 106, 109, 110,
+                            111, 113, 119, 125, 135, 139, 143, 144, 146, 161, 162, 163, 179, 199, 211, 212, 222,
                             254, 255, 256, 259, 264, 280, 301, 306, 311, 340, 366, 389, 406, 407, 416, 417,
                             425, 427, 443, 444, 445, 458, 464, 465, 481, 497, 500, 512, 513, 514, 515, 524,
                             541, 543, 544, 545, 548, 554, 555, 563, 587, 593, 616, 617, 625, 631, 636, 646,
@@ -105,7 +107,7 @@ def extra_requirements_dict():
     }
 
 
-if "--method-args" in sys.argv and "port_scan_stealth=true" in " ".join(sys.argv).lower():
+if "--method-args" in sys.argv and "port_scan_stealth" in " ".join(sys.argv).lower():
     from scapy.all import *
 
     if is_windows():  # fix later
@@ -113,17 +115,45 @@ if "--method-args" in sys.argv and "port_scan_stealth=true" in " ".join(sys.argv
         import scapy.plist as plist
         from scapy.utils import PcapReader
         from scapy.data import MTU, ETH_P_ARP
-        import os, re, sys, socket, time, itertools
+        import re
+        import sys
+        import itertools
     WINDOWS = True
     conf.verb = 0
     conf.nofilter = 1
+
+def check_closed(ip):
+    for i in range(1, 10):
+        s = sr1(IP(dst=ip) / TCP(dport=i), timeout=2, verbose=0)
+        if s != 'SA' and s is not None:
+            return i
+    return 0
+
+
+def filter_port(ip, port):
+    closed_port = check_closed(ip)
+    s = sr1(IP(dst=str(ip)) / TCP(dport=port, flags='S'), timeout=2, verbose=0)
+    try:
+        if s != 'SA':
+            try:
+                if s[0][1].seq == 0:
+                    pass
+            except:
+                s = sr1(IP(dst=ip) / TCP(dport=closed_port, flags='S'), timeout=2, verbose=0)
+                if s == None:
+                    return None
+                else:
+                    return True
+    except:
+        pass
 
 
 def stealth(host, port, timeout_sec, log_in_file, language, time_sleep, thread_tmp_filename, socks_proxy, scan_id,
             scan_cmd, stealth_flag):
     try:
         if socks_proxy is not None:
-            socks_version = socks.SOCKS5 if socks_proxy.startswith('socks5://') else socks.SOCKS4
+            socks_version = socks.SOCKS5 if socks_proxy.startswith(
+                'socks5://') else socks.SOCKS4
             socks_proxy = socks_proxy.rsplit('://')[1]
             if '@' in socks_proxy:
                 socks_username = socks_proxy.rsplit(':')[0]
@@ -134,21 +164,33 @@ def stealth(host, port, timeout_sec, log_in_file, language, time_sleep, thread_t
                 socket.socket = socks.socksocket
                 socket.getaddrinfo = getaddrinfo
             else:
-                socks.set_default_proxy(socks_version, str(socks_proxy.rsplit(':')[0]), int(socks_proxy.rsplit(':')[1]))
+                socks.set_default_proxy(socks_version, str(
+                    socks_proxy.rsplit(':')[0]), int(socks_proxy.rsplit(':')[1]))
                 socket.socket = socks.socksocket
         src_port = RandShort()
 
-        stealth_scan_resp = sr1(IP(dst=host) / TCP(sport=src_port, dport=port, flags="S"), timeout=int(timeout_sec))
+        stealth_scan_resp = sr1(
+            IP(dst=host) / TCP(sport=src_port, dport=port, flags="S"), timeout=int(timeout_sec))
         if (str(type(stealth_scan_resp)) == "<type 'NoneType'>"):
             # "Filtered"
             pass
         elif (stealth_scan_resp.haslayer(TCP)):
             if (stealth_scan_resp.getlayer(TCP).flags == 0x12):
                 # send_rst = sr(IP(dst=host) / TCP(sport=src_port, dport=port, flags="R"), timeout=timeout_sec)
-                info(messages(language, 80).format(host, port, "STEALTH"))
+                try:
+                    service_name = "/" + discover_by_port(host, port, timeout_sec, b"ABC\x00\r\n" * 10, socks_proxy,
+                                                          external_run=True)
+                except Exception as _:
+                    service_name = None
+                if not service_name or service_name == "/UNKNOWN":
+                    try:
+                        service_name = "/" + socket.getservbyport(port)
+                    except Exception:
+                        service_name = ""
                 data = json.dumps(
                     {'HOST': host, 'USERNAME': '', 'PASSWORD': '', 'PORT': port, 'TYPE': 'port_scan',
-                     'DESCRIPTION': messages(language, 79).format(port, "STEALTH"), 'TIME': now(),
+                     'DESCRIPTION': messages(language, "port/type").format(str(port) + service_name, "STEALTH"),
+                     'TIME': now(),
                      'CATEGORY': "scan", 'SCAN_ID': scan_id,
                      'SCAN_CMD': scan_cmd}) + '\n'
                 __log_into_file(log_in_file, 'a', data, language)
@@ -159,7 +201,6 @@ def stealth(host, port, timeout_sec, log_in_file, language, time_sleep, thread_t
         elif (stealth_scan_resp.haslayer(ICMP)):
             if (int(stealth_scan_resp.getlayer(ICMP).type) == 3
                     and int(stealth_scan_resp.getlayer(ICMP).code) in [1, 2, 3, 9, 10, 13]):
-                # "Filtered"
                 pass
         else:
             # "CHECK"
@@ -168,12 +209,12 @@ def stealth(host, port, timeout_sec, log_in_file, language, time_sleep, thread_t
     except:
         return False
 
-
-def connect(host, port, timeout_sec, log_in_file, language, time_sleep, thread_tmp_filename, socks_proxy, scan_id,
+def __udp(host, port, timeout_sec, log_in_file, language, time_sleep, thread_tmp_filename, socks_proxy, scan_id,
             scan_cmd, stealth_flag):
     try:
         if socks_proxy is not None:
-            socks_version = socks.SOCKS5 if socks_proxy.startswith('socks5://') else socks.SOCKS4
+            socks_version = socks.SOCKS5 if socks_proxy.startswith(
+                'socks5://') else socks.SOCKS4
             socks_proxy = socks_proxy.rsplit('://')[1]
             if '@' in socks_proxy:
                 socks_username = socks_proxy.rsplit(':')[0]
@@ -184,7 +225,80 @@ def connect(host, port, timeout_sec, log_in_file, language, time_sleep, thread_t
                 socket.socket = socks.socksocket
                 socket.getaddrinfo = getaddrinfo
             else:
-                socks.set_default_proxy(socks_version, str(socks_proxy.rsplit(':')[0]), int(socks_proxy.rsplit(':')[1]))
+                socks.set_default_proxy(socks_version, str(
+                    socks_proxy.rsplit(':')[0]), int(socks_proxy.rsplit(':')[1]))
+                socket.socket = socks.socksocket
+                socket.getaddrinfo = getaddrinfo
+        data = "\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+        if target_type(host) == "SINGLE_IPv6":
+            s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM, 0)
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        if timeout_sec is not None:
+            s.settimeout(timeout_sec)
+        if target_type(host) == "SINGLE_IPv6":
+            s.sendto((host, port, 0, 0))
+        else:
+            s.sendto(data,(host,port))
+        try:
+            s.recvfrom(4096)
+        except:
+            return False
+        try:
+            service_name = "/" + socket.getservbyport(port)
+        except Exception:
+            service_name = ""
+        info(messages(language, "port_found").format(host, str(port) + service_name, "UDP"), log_in_file,
+             "a", {'HOST': host, 'USERNAME': '', 'PASSWORD': '', 'PORT': port, 'TYPE': 'port_scan',
+                   'DESCRIPTION': messages(language, "port/type").format(str(port) + service_name, "UDP"),
+                   'TIME': now(), 'CATEGORY': "scan", 'SCAN_ID': scan_id, 'SCAN_CMD': scan_cmd}, language,
+             thread_tmp_filename)
+        s.close()
+        return True
+    except socket.timeout:
+        try:
+            service_name = "/" + discover_by_port(host, port, timeout_sec, b"ABC\x00\r\n" * 10, socks_proxy,
+                                                  external_run=True)
+        except Exception as _:
+            service_name = None
+        if not service_name or service_name == "/UNKNOWN":
+            try:
+                service_name = "/" + socket.getservbyport(port)
+            except Exception:
+                service_name = ""
+        try:
+            if filter_port(host, port):
+                info(messages(language, "port_found").format(host, str(port) + service_name, "TCP_CONNECT"))
+                data = json.dumps({'HOST': host, 'USERNAME': '', 'PASSWORD': '', 'PORT': port, 'TYPE': 'port_scan',
+                                   'DESCRIPTION': messages(language, "port/type").format(str(port) + service_name,
+                                                                                         "TCP_CONNECT"),
+                                   'TIME': now(), 'CATEGORY': "scan", 'SCAN_ID': scan_id, 'SCAN_CMD': scan_cmd}) + '\n'
+                __log_into_file(log_in_file, 'a', data, language)
+                __log_into_file(thread_tmp_filename, 'w', '0', language)
+        except:
+            pass
+    except:
+        return False
+
+
+def connect(host, port, timeout_sec, log_in_file, language, time_sleep, thread_tmp_filename, socks_proxy, scan_id,
+            scan_cmd, stealth_flag):
+    try:
+        if socks_proxy is not None:
+            socks_version = socks.SOCKS5 if socks_proxy.startswith(
+                'socks5://') else socks.SOCKS4
+            socks_proxy = socks_proxy.rsplit('://')[1]
+            if '@' in socks_proxy:
+                socks_username = socks_proxy.rsplit(':')[0]
+                socks_password = socks_proxy.rsplit(':')[1].rsplit('@')[0]
+                socks.set_default_proxy(socks_version, str(socks_proxy.rsplit('@')[1].rsplit(':')[0]),
+                                        int(socks_proxy.rsplit(':')[-1]), username=socks_username,
+                                        password=socks_password)
+                socket.socket = socks.socksocket
+                socket.getaddrinfo = getaddrinfo
+            else:
+                socks.set_default_proxy(socks_version, str(
+                    socks_proxy.rsplit(':')[0]), int(socks_proxy.rsplit(':')[1]))
                 socket.socket = socks.socksocket
                 socket.getaddrinfo = getaddrinfo
         if target_type(host) == "SINGLE_IPv6":
@@ -197,16 +311,45 @@ def connect(host, port, timeout_sec, log_in_file, language, time_sleep, thread_t
             s.connect((host, port, 0, 0))
         else:
             s.connect((host, port))
-        info(messages(language, 80).format(host, port, "TCP_CONNECT"))
-        data = json.dumps(
-            {'HOST': host, 'USERNAME': '', 'PASSWORD': '', 'PORT': port, 'TYPE': 'port_scan',
-             'DESCRIPTION': messages(language, 79).format(port, "TCP_CONNECT"), 'TIME': now(), 'CATEGORY': "scan",
-             'SCAN_ID': scan_id,
-             'SCAN_CMD': scan_cmd}) + '\n'
-        __log_into_file(log_in_file, 'a', data, language)
-        __log_into_file(thread_tmp_filename, 'w', '0', language)
+        try:
+            service_name = "/" + discover_by_port(host, port, timeout_sec, b"ABC\x00\r\n" * 10, socks_proxy,
+                                                  external_run=True)
+        except Exception as _:
+            service_name = None
+        if not service_name or service_name == "/UNKNOWN":
+            try:
+                service_name = "/" + socket.getservbyport(port)
+            except Exception:
+                service_name = ""
+        info(messages(language, "port_found").format(host, str(port) + service_name, "TCP_CONNECT"), log_in_file,
+             "a", {'HOST': host, 'USERNAME': '', 'PASSWORD': '', 'PORT': port, 'TYPE': 'port_scan',
+                   'DESCRIPTION': messages(language, "port/type").format(str(port) + service_name, "TCP_CONNECT"),
+                   'TIME': now(), 'CATEGORY': "scan", 'SCAN_ID': scan_id, 'SCAN_CMD': scan_cmd}, language,
+             thread_tmp_filename)
         s.close()
         return True
+    except socket.timeout:
+        try:
+            service_name = "/" + discover_by_port(host, port, timeout_sec, b"ABC\x00\r\n" * 10, socks_proxy,
+                                                  external_run=True)
+        except Exception as _:
+            service_name = None
+        if not service_name or service_name == "/UNKNOWN":
+            try:
+                service_name = "/" + socket.getservbyport(port)
+            except Exception:
+                service_name = ""
+        try:
+            if filter_port(host, port):
+                info(messages(language, "port_found").format(host, str(port) + service_name, "TCP_CONNECT"))
+                data = json.dumps({'HOST': host, 'USERNAME': '', 'PASSWORD': '', 'PORT': port, 'TYPE': 'port_scan',
+                                   'DESCRIPTION': messages(language, "port/type").format(str(port) + service_name,
+                                                                                         "TCP_CONNECT"),
+                                   'TIME': now(), 'CATEGORY': "scan", 'SCAN_ID': scan_id, 'SCAN_CMD': scan_cmd}) + '\n'
+                __log_into_file(log_in_file, 'a', data, language)
+                __log_into_file(thread_tmp_filename, 'w', '0', language)
+        except:
+            pass
     except:
         return False
 
@@ -220,14 +363,25 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
         if methods_args is not None:
             for extra_requirement in extra_requirements_dict():
                 if extra_requirement in methods_args:
-                    new_extra_requirements[extra_requirement] = methods_args[extra_requirement]
+                    new_extra_requirements[
+                        extra_requirement] = methods_args[extra_requirement]
         extra_requirements = new_extra_requirements
         if ports is None:
             ports = extra_requirements["port_scan_ports"]
-        if extra_requirements["port_scan_stealth"][0].lower() == "true":
-            stealth_flag = True
-        else:
+        try:
+            if extra_requirements["port_scan_stealth"][0].lower() == "true":
+                stealth_flag = True
+                udp_flag = False
+            elif extra_requirements["udp_scan"][0].lower() == "true":
+                stealth_flag = False
+                udp_flag = True
+            else:
+                stealth_flag = False
+                udp_flag = False
+        except Exception:
+            udp_flag = False
             stealth_flag = False
+
         if target_type(target) == 'HTTP':
             target = target_to_host(target)
         threads = []
@@ -238,7 +392,7 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
         trying = 0
         keyboard_interrupt_flag = False
         for port in ports:
-            t = threading.Thread(target=stealth if stealth_flag else connect,
+            t = threading.Thread(target = stealth if stealth_flag else (__udp if udp_flag else connect),
                                  args=(target, int(port), timeout_sec, log_in_file, language, time_sleep,
                                        thread_tmp_filename, socks_proxy, scan_id, scan_cmd, stealth_flag))
             threads.append(t)
@@ -247,7 +401,8 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
             trying += 1
             if verbose_level > 3:
                 info(
-                    messages(language, 72).format(trying, total_req, num, total, target, port, 'port_scan'))
+                    messages(language, "trying_message").format(trying, total_req, num, total, target, port,
+                                                                'port_scan'))
             while 1:
                 try:
                     if threading.activeCount() >= thread_number:
@@ -262,7 +417,8 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
 
         # wait for threads
         kill_switch = 0
-        kill_time = int(timeout_sec / 0.1) if int(timeout_sec / 0.1) is not 0 else 1
+        kill_time = int(
+            timeout_sec / 0.1) * (5 + timeout_sec) * 10 if int(timeout_sec / 0.1) is not 0 else 2
         while 1:
             time.sleep(0.1)
             kill_switch += 1
@@ -275,10 +431,10 @@ def start(target, users, passwds, ports, timeout_sec, thread_number, num, total,
         if thread_write is 1 and verbose_level is not 0:
             data = json.dumps(
                 {'HOST': target, 'USERNAME': '', 'PASSWORD': '', 'PORT': '', 'TYPE': 'port_scan',
-                 'DESCRIPTION': messages(language, 94), 'TIME': now(), 'CATEGORY': "scan",
+                 'DESCRIPTION': messages(language, "no_open_ports"), 'TIME': now(), 'CATEGORY': "scan",
                  'SCAN_ID': scan_id, 'SCAN_CMD': scan_cmd}) + "\n"
             __log_into_file(log_in_file, 'a', data, language)
         os.remove(thread_tmp_filename)
 
     else:
-        warn(messages(language, 69).format('port_scan', target))
+        warn(messages(language, "input_target_error").format('port_scan', target))

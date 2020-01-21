@@ -35,10 +35,12 @@ def start(graph_flag, language, data, _HOST, _USERNAME, _PASSWORD, _PORT, _TYPE,
 
         if each_scan['HOST'] not in normalisedjson['children']:
             normalisedjson['children'].update({each_scan['HOST']: {}})
-            normalisedjson['children'][each_scan['HOST']].update({each_scan['TYPE']: []})
+            normalisedjson['children'][each_scan['HOST']].update(
+                {each_scan['TYPE']: []})
 
         if each_scan['TYPE'] not in normalisedjson['children'][each_scan['HOST']]:
-            normalisedjson['children'][each_scan['HOST']].update({each_scan['TYPE']: []})
+            normalisedjson['children'][each_scan['HOST']].update(
+                {each_scan['TYPE']: []})
 
         normalisedjson['children'][each_scan['HOST']][each_scan['TYPE']].append("HOST: \"%s\", PORT:\"%s\", DESCRIPTION:\"%s\", USERNAME:\"%s\", PASSWORD:\"%s\"" % (
             each_scan['HOST'], each_scan['PORT'], each_scan['DESCRIPTION'], each_scan['USERNAME'], each_scan['PASSWORD']))
@@ -201,7 +203,7 @@ a {
 }
 
 </style>
-<a target="_blank" href="https://github.com/viraintel/OWASP-Nettacker"><h2>OWASP Nettacker</h2></a>
+<a target="_blank" href="https://github.com/zdresearch/OWASP-Nettacker"><h2>OWASP Nettacker</h2></a>
 <!--[if IE]><script language="javascript" type="text/javascript" src="../../Extras/excanvas.js"></script><![endif]-->
 
 <!-- JIT Library File -->
@@ -14800,9 +14802,9 @@ __title_to_replace__
 </div>
 </body>
 </html>'''.replace('__data_will_locate_here__', json.dumps(dgraph)) \
-        .replace('__title_to_replace__', messages(language, 90)) \
-        .replace('__description_to_replace__', messages(language, 91)) \
-        .replace('__html_title_to_replace__', messages(language, 92))
+        .replace('__title_to_replace__', messages(language, "pentest_graphs")) \
+        .replace('__description_to_replace__', messages(language, "graph_message")) \
+        .replace('__html_title_to_replace__', messages(language, "nettacker_report"))
     if version() is 2:
         return data.decode('utf8')
     return data
